@@ -37,10 +37,6 @@ ${characterPrompt}
           content: prompt,
         },
       ],
-      extra_headers: {
-        "HTTP-Referer": "https://zhen-huan-teaches-arguing.com",
-        "X-Title": "甄嬛教你吵架",
-      },
     });
 
     // Parse the response to get individual comebacks

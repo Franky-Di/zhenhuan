@@ -42,7 +42,27 @@ export default function RecentArguments({
   };
 
   if (recentArguments.length === 0 || !showRecent) {
-    return null;
+    return (
+      <Card className="my-6">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center justify-between">
+            <span>最近的吵架</span>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setShowRecent(false)}
+            >
+              隐藏
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <p className="text-sm text-gray-500">&ldquo;暂无历史记录&rdquo;</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -80,7 +100,7 @@ export default function RecentArguments({
                     </span>
                   </div>
                   <p className="text-sm text-gray-700 truncate">
-                    回应: "{argument.opponentWords}"
+                    回应: &quot;{argument.opponentWords}&quot;
                   </p>
                 </div>
                 <Button
