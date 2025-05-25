@@ -13,6 +13,9 @@ const nextConfig = {
   experimental: {
     serverActions: true,
   },
+  output: 'standalone',
+  poweredByHeader: false,
+  compress: true,
 };
 
 module.exports = withPWA(nextConfig);
