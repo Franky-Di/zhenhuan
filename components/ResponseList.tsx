@@ -1,27 +1,58 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { getCharacterById } from "@/lib/characters";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ResponseListProps {
   responses: string[];
-  loading: boolean;
+  isLoading: boolean;
   character: string;
 }
 
-export default function ResponseList({ 
-  responses, 
-  loading, 
-  character 
-}: ResponseListProps) {
+export default function ResponseList({ responses, isLoading, character }: ResponseListProps) {
   const { toast } = useToast();
-  const [copiedIndex, setCopiedIndex] = React.useState<number | null>(null);
+  const [displayedResponses, setDisplayedResponses] = useState<string[]>([]);
+  const [currentResponseIndex, setCurrentResponseIndex] = useState(0);
+  const [currentText, setCurrentText] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   const selectedCharacter = getCharacterById(character);
+
+  useEffect(() => {
+    if (responses.length > 0 && !isLoading) {
+      setDisplayedResponses([]);
+      setCurrentResponseIndex(0);
+      setCurrentText("");
+      setIsTyping(true);
+    }
+  }, [responses, isLoading]);
+
+  useEffect(() => {
+    if (!isTyping || currentResponseIndex >= responses.length) return;
+
+    const currentResponse = responses[currentResponseIndex];
+    let charIndex = 0;
+
+    const typingInterval = setInterval(() => {
+      if (charIndex < currentResponse.length) {
+        setCurrentText(prev => prev + currentResponse[charIndex]);
+        charIndex++;
+      } else {
+        clearInterval(typingInterval);
+        setDisplayedResponses(prev => [...prev, currentText]);
+        setCurrentText("");
+        setCurrentResponseIndex(prev => prev + 1);
+        setIsTyping(currentResponseIndex + 1 < responses.length);
+      }
+    }, 30); // 调整这个数值可以改变打字速度
+
+    return () => clearInterval(typingInterval);
+  }, [isTyping, currentResponseIndex, responses]);
 
   const copyToClipboard = (text: string, index: number) => {
     navigator.clipboard.writeText(text).then(() => {
@@ -34,17 +65,10 @@ export default function ResponseList({
     });
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="my-8 space-y-4">
-        {[...Array(3)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
-            <CardContent className="p-4">
-              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="flex justify-center items-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
       </div>
     );
   }
@@ -64,7 +88,7 @@ export default function ResponseList({
         )}
       </h2>
       
-      {responses.map((response, index) => (
+      {displayedResponses.map((response, index) => (
         <Card 
           key={index}
           className={`border-l-4 ${selectedCharacter?.colorClass || 'border-l-[#07C160]'}`}
@@ -86,6 +110,16 @@ export default function ResponseList({
           </CardContent>
         </Card>
       ))}
+      {currentText && (
+        <Card className="bg-white shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-gray-800">
+              {currentText}
+              <span className="animate-pulse">|</span>
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

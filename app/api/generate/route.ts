@@ -29,7 +29,7 @@ ${characterPrompt}
 请以《甄嬛传》中该角色的语气，回击对方的话。给我10句不同的、机智的、犀利的回击，每句话都要独立成段，不要使用序号。保持角色特点，语气要犀利到位。
 `;
 
-    const completion = await openai.chat.completions.create({
+    const stream = await openai.chat.completions.create({
       model: "deepseek/deepseek-chat-v3-0324:free",
       messages: [
         {
@@ -37,17 +37,43 @@ ${characterPrompt}
           content: prompt,
         },
       ],
+      stream: true,
     });
 
-    // Parse the response to get individual comebacks
-    const fullResponse = completion.choices[0].message.content || "";
-    const responses = fullResponse
-      .split("\n")
-      .filter(line => line.trim().length > 0)
-      .map(line => line.replace(/^[•\-\d.]\s*/, "").trim())
-      .slice(0, 10);
+    // 创建一个 TransformStream 来处理流式响应
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
 
-    return NextResponse.json({ responses });
+    const transformStream = new TransformStream({
+      async transform(chunk, controller) {
+        const text = decoder.decode(chunk);
+        const lines = text.split('\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+            
+            try {
+              const parsed = JSON.parse(data);
+              const content = parsed.choices[0]?.delta?.content || '';
+              if (content) {
+                controller.enqueue(encoder.encode(content));
+              }
+            } catch (e) {
+              console.error('Error parsing JSON:', e);
+            }
+          }
+        }
+      },
+    });
+
+    return new Response(stream.body?.pipeThrough(transformStream), {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Transfer-Encoding': 'chunked',
+      },
+    });
   } catch (error: any) {
     console.error("Error generating responses:", error);
     return NextResponse.json(
